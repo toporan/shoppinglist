@@ -6,6 +6,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Indkøbsliste">
+    <meta name="theme-color" content="#FFFFFF">
+    <link rel="apple-touch-icon" href="cart-trans.png">
     <title>Indkøbsliste</title>
     <style>
         *, *::before, *::after {
@@ -21,7 +23,7 @@
             --purchased-bg: #dbdbdb;
             --swipe-bg: #6b9e2a;
             --red: #FF453A;
-            --grey-bg: #F2F2F7;
+            --bg: #FFFFFF;
             --grey-text: #8E8E93;
             --text: #1C1C1E;
             --separator: rgba(60, 60, 67, 0.12);
@@ -34,7 +36,7 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
-            background: var(--grey-bg);
+            background: var(--bg);
             color: var(--text);
             -webkit-font-smoothing: antialiased;
         }
@@ -45,6 +47,62 @@
             flex-direction: column;
             padding-top: var(--safe-top);
             padding-bottom: var(--safe-bottom);
+        }
+
+        /* ── Splash screen ── */
+        .splash {
+            position: fixed;
+            inset: 0;
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.4s ease;
+            padding-top: var(--safe-top);
+        }
+
+        .splash.hide {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .splash-icon {
+            width: 80px;
+            height: 80px;
+            animation: splashIn 0.5s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+            opacity: 0;
+            transform: scale(0.8);
+        }
+
+        .splash-icon svg {
+            width: 100%;
+            height: 100%;
+            stroke: var(--swipe-bg);
+            fill: none;
+            stroke-width: 1.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .splash-label {
+            margin-top: 16px;
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--text);
+            letter-spacing: -0.3px;
+            opacity: 0;
+            animation: fadeUp 0.4s 0.15s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+        }
+
+        @keyframes splashIn {
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .header {
@@ -96,7 +154,7 @@
             font-size: 16px;
             font-family: inherit;
             outline: none;
-            background: var(--grey-bg);
+            background: var(--bg);
             color: var(--text);
             transition: border-color 0.2s, background 0.2s;
         }
@@ -165,7 +223,7 @@
             color: var(--text);
         }
 
-        .ac-item:active { background: var(--grey-bg); }
+        .ac-item:active { background: var(--bg); }
         .ac-item strong { color: var(--swipe-bg); font-weight: 600; }
 
         .scroll-area {
@@ -173,6 +231,7 @@
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
             padding: 12px 16px 40px;
+            background: var(--bg);
         }
 
         .scroll-area::-webkit-scrollbar { display: none; }
@@ -434,6 +493,18 @@
     </style>
 </head>
 <body>
+    <!-- Splash screen -->
+    <div class="splash" id="splash">
+        <div class="splash-icon">
+            <svg viewBox="0 0 24 24">
+                <circle cx="9" cy="21" r="1"/>
+                <circle cx="20" cy="21" r="1"/>
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+            </svg>
+        </div>
+        <div class="splash-label">Indkøbsliste</div>
+    </div>
+
     <div id="app">
         <header class="header">
             <h1>Indkøbsliste<span class="sync-dot" id="syncDot"></span></h1>
@@ -459,6 +530,32 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
     <script>
+        /* ── Splash dismiss ── */
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                document.getElementById('splash').classList.add('hide');
+            }, 600);
+        });
+
+        /* ── PWA manifest (inline, no separate file needed) ── */
+        var manifest = {
+            name: 'Indkøbsliste',
+            short_name: 'Indkøb',
+            start_url: '.',
+            display: 'standalone',
+            background_color: '#FFFFFF',
+            theme_color: '#FFFFFF',
+            icons: [
+                { src: 'cart-trans.png', sizes: '1024x1024', type: 'image/png' }
+            ]
+        };
+        var manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+        var manifestLink = document.createElement('link');
+        manifestLink.rel = 'manifest';
+        manifestLink.href = URL.createObjectURL(manifestBlob);
+        document.head.appendChild(manifestLink);
+
+        /* ── Firebase ── */
         var firebaseConfig = {
             apiKey: "AIzaSyDBThLFz7zOzxQmLhYX-0Y9iuNzEWNxUcQ",
             authDomain: "shopping-58cf3.firebaseapp.com",
@@ -495,7 +592,6 @@
 
         var data = loadLocal();
 
-        /* Firebase turns empty arrays [] into null — normalize back */
         function toArray(v) {
             if (Array.isArray(v)) return v;
             return [];
