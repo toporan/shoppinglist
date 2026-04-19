@@ -49,7 +49,6 @@
             padding-bottom: var(--safe-bottom);
         }
 
-        /* ── Splash screen ── */
         .splash {
             position: fixed;
             inset: 0;
@@ -115,21 +114,48 @@
             font-size: 28px;
             font-weight: 700;
             letter-spacing: -0.4px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .sync-dot {
-            display: inline-block;
+        /* ── Sync badge ── */
+        .sync-badge {
             width: 16px;
             height: 16px;
             border-radius: 50%;
             background: var(--grey-text);
-            margin-left: 8px;
-            vertical-align: middle;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
             transition: background 0.3s;
         }
 
-        .sync-dot.online { background: #34C759; }
-        .sync-dot.syncing { background: #FF9F0A; }
+        .sync-badge svg {
+            width: 10px;
+            height: 10px;
+            stroke: var(--white);
+            fill: none;
+            stroke-width: 2.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .sync-badge.online { background: #34C759; }
+
+        .sync-badge.syncing {
+            background: #FF9F0A;
+        }
+
+        .sync-badge.syncing svg {
+            animation: spin 1s linear infinite;
+            transform-origin: center;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
 
         .input-bar {
             background: var(--white);
@@ -141,7 +167,7 @@
 
         .input-row {
             display: flex;
-            gap: 0px;
+            gap: 10px;
             align-items: center;
         }
 
@@ -493,7 +519,6 @@
     </style>
 </head>
 <body>
-    <!-- Splash screen -->
     <div class="splash" id="splash">
         <div class="splash-icon">
             <svg viewBox="0 0 24 24">
@@ -507,7 +532,9 @@
 
     <div id="app">
         <header class="header">
-            <h1>Indkøbsliste<span class="sync-dot" id="syncDot"></span></h1>
+            <h1>Indkøbsliste<span class="sync-badge" id="syncBadge">
+                <svg viewBox="0 0 24 24"><path d="M18 4l3 3-3 3"/><path d="M21 7H9"/><path d="M6 20l-3-3 3-3"/><path d="M3 17h12"/></svg>
+            </span></h1>
         </header>
 
         <div class="input-bar">
@@ -530,14 +557,12 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
     <script>
-        /* ── Splash dismiss ── */
         window.addEventListener('load', function() {
             setTimeout(function() {
                 document.getElementById('splash').classList.add('hide');
             }, 600);
         });
 
-        /* ── PWA manifest (inline, no separate file needed) ── */
         var manifest = {
             name: 'Indkøbsliste',
             short_name: 'Indkøb',
@@ -555,6 +580,24 @@
         manifestLink.href = URL.createObjectURL(manifestBlob);
         document.head.appendChild(manifestLink);
 
+        /* ── Sync badge icons ── */
+        var ICON_SYNC = '<svg viewBox="0 0 24 24"><path d="M18 4l3 3-3 3"/><path d="M21 7H9"/><path d="M6 20l-3-3 3-3"/><path d="M3 17h12"/></svg>';
+        var ICON_CHECK = '<svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"/></svg>';
+        var ICON_OFF = '<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+
+        var syncBadge = document.getElementById('syncBadge');
+
+        function setSyncState(state) {
+            syncBadge.className = 'sync-badge ' + state;
+            if (state === 'online') {
+                syncBadge.innerHTML = ICON_CHECK;
+            } else if (state === 'syncing') {
+                syncBadge.innerHTML = ICON_SYNC;
+            } else {
+                syncBadge.innerHTML = ICON_OFF;
+            }
+        }
+
         /* ── Firebase ── */
         var firebaseConfig = {
             apiKey: "AIzaSyDBThLFz7zOzxQmLhYX-0Y9iuNzEWNxUcQ",
@@ -568,8 +611,9 @@
 
         firebase.initializeApp(firebaseConfig);
         var dbRef = firebase.database().ref('list');
-        var syncDot = document.getElementById('syncDot');
         var firebaseReady = false;
+
+        setSyncState('offline');
 
         var STORAGE_KEY = 'indkoebsliste_v7';
 
@@ -605,29 +649,30 @@
                 data.allKnown = toArray(d.allKnown);
                 saveLocal();
                 firebaseReady = true;
-                syncDot.className = 'sync-dot online';
+                setSyncState('online');
                 render();
             } else if (!firebaseReady) {
                 dbRef.set(data);
                 firebaseReady = true;
-                syncDot.className = 'sync-dot online';
+                setSyncState('online');
             }
         });
 
         firebase.database().ref('.info/connected').on('value', function(snap) {
             if (snap.val() === true) {
-                syncDot.className = 'sync-dot online';
+                setSyncState('online');
             } else {
-                syncDot.className = 'sync-dot';
+                setSyncState('offline');
             }
         });
 
         function saveData() {
             saveLocal();
             try {
-                syncDot.className = 'sync-dot syncing';
+                setSyncState('syncing');
                 dbRef.set(data, function(err) {
-                    if (!err) syncDot.className = 'sync-dot online';
+                    if (!err) setSyncState('online');
+                    else setSyncState('offline');
                 });
             } catch (_) {}
         }
