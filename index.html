@@ -495,10 +495,18 @@
 
         var data = loadLocal();
 
+        /* Firebase turns empty arrays [] into null — normalize back */
+        function toArray(v) {
+            if (Array.isArray(v)) return v;
+            return [];
+        }
+
         dbRef.on('value', function(snapshot) {
             var d = snapshot.val();
-            if (d && Array.isArray(d.shopping) && Array.isArray(d.purchased) && Array.isArray(d.allKnown)) {
-                data = d;
+            if (d) {
+                data.shopping = toArray(d.shopping);
+                data.purchased = toArray(d.purchased);
+                data.allKnown = toArray(d.allKnown);
                 saveLocal();
                 firebaseReady = true;
                 syncDot.className = 'sync-dot online';
