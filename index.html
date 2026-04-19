@@ -116,26 +116,20 @@
             font-weight: 700;
             letter-spacing: -0.4px;
         }
-		
-		.sync-status {
-			height: 44px;
-			padding: 14px 4px;
-			border: 1px solid var(--separator);
-			background-color: var(--purchased-bg);
-		}
 
         .sync-dot {
-            display: block;
-            width: 16px;
-            height: 16px;
+            display: inline-block;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
             background: var(--grey-text);
+            margin-left: 8px;
             vertical-align: middle;
             transition: background 0.3s;
         }
 
         .sync-dot.online { background: #34C759; }
-        .sync-dot.syncing { background: #ff0a43; }
+        .sync-dot.syncing { background: #FF9F0A; }
 
         .input-bar {
             background: var(--white);
@@ -512,15 +506,12 @@
     </div>
 
     <div id="app">
-		<!--
         <header class="header">
-            <h1>Indkøbsliste<span class="sync-dot" id="syncDot"></span></h1>
+            <h1>Vores Indkøbsliste<span class="sync-dot" id="syncDot"></span></h1>
         </header>
-		-->
-		
+
         <div class="input-bar">
             <div class="input-row">
-				<div class="sync-status"><span class="sync-dot" id="syncDot"></span></div>
                 <input type="text" id="itemInput" placeholder="Tilføj vare..." autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="done">
                 <button type="button" class="plus-btn" id="plusBtn" aria-label="Tilføj">+</button>
             </div>
