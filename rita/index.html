@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Ritas Indkøb">
+    <meta name="theme-color" content="#FFFFFF">
+    <link rel="apple-touch-icon" href="cart-trans.png">
+    <title>Ritas Indkøb</title>
+    <style>
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --active-bg: #ccea8f;
+            --active-text: #1C1C1E;
+            --purchased-bg: #dbdbdb;
+            --swipe-bg: #6b9e2a;
+            --red: #FF453A;
+            --bg: #FFFFFF;
+            --grey-text: #8E8E93;
+            --text: #1C1C1E;
+            --separator: rgba(60, 60, 67, 0.12);
+            --white: #FFFFFF;
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        html, body { height: 100%; overflow: hidden; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        #app {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding-top: var(--safe-top);
+            padding-bottom: var(--safe-bottom);
+        }
+
+        .splash {
+            position: fixed;
+            inset: 0;
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.4s ease;
+            padding-top: var(--safe-top);
+        }
+
+        .splash.hide {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .splash-icon {
+            width: 80px;
+            height: 80px;
+            animation: splashIn 0.5s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+            opacity: 0;
+            transform: scale(0.8);
+        }
+
+        .splash-icon svg {
+            width: 100%;
+            height: 100%;
+            stroke: var(--swipe-bg);
+            fill: none;
+            stroke-width: 1.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .splash-label {
+            margin-top: 16px;
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--text);
+            letter-spacing: -0.3px;
+            opacity: 0;
+            animation: fadeUp 0.4s 0.15s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+        }
+
+        @keyframes splashIn {
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header {
+            padding: 14px 20px 12px;
+            background: var(--white);
+            flex-shrink: 0;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.4px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sync-badge {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--grey-text);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: background 0.3s;
+        }
+
+        .sync-badge svg {
+            width: 10px;
+            height: 10px;
+            stroke: var(--white);
+            fill: none;
+            stroke-width: 2.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .sync-badge.online { background: #34C759; }
+
+        .sync-badge.syncing {
+            background: #FF9F0A;
+        }
+
+        .sync-badge.syncing svg {
+            animation: spin 1s linear infinite;
+            transform-origin: center;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .input-bar {
+            background: var(--white);
+            border-bottom: 0.5px solid var(--separator);
+            padding: 0 16px 12px;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .input-row input {
+            flex: 1;
+            height: 44px;
+            border: 1.5px solid var(--separator);
+            border-radius: 0;
+            padding: 0 14px;
+            font-size: 16px;
+            font-family: inherit;
+            outline: none;
+            background: var(--bg);
+            color: var(--text);
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .input-row input:focus {
+            border-color: var(--swipe-bg);
+            background: var(--white);
+        }
+
+        .input-row input::placeholder { color: var(--grey-text); }
+
+        .plus-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 0;
+            border: none;
+            background: var(--swipe-bg);
+            color: var(--white);
+            font-size: 24px;
+            font-weight: 300;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: background 0.15s, transform 0.1s;
+            font-family: inherit;
+            line-height: 1;
+        }
+
+        .plus-btn:active {
+            background: #5a8722;
+            transform: scale(0.94);
+        }
+
+        .autocomplete {
+            position: absolute;
+            top: 100%;
+            left: 16px;
+            right: 16px;
+            background: var(--white);
+            border: 0.5px solid var(--separator);
+            border-radius: 0;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.2s ease, opacity 0.15s ease;
+            opacity: 0;
+            z-index: 10;
+        }
+
+        .autocomplete.visible {
+            max-height: 240px;
+            overflow-y: auto;
+            opacity: 1;
+        }
+
+        .autocomplete::-webkit-scrollbar { display: none; }
+        .autocomplete { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .ac-item {
+            padding: 12px 14px;
+            font-size: 15px;
+            cursor: pointer;
+            transition: background 0.08s;
+            color: var(--text);
+        }
+
+        .ac-item:active { background: var(--bg); }
+        .ac-item strong { color: var(--swipe-bg); font-weight: 600; }
+
+        .scroll-area {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 12px 16px 40px;
+            background: var(--bg);
+        }
+
+        .scroll-area::-webkit-scrollbar { display: none; }
+        .scroll-area { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .empty-state {
+            text-align: center;
+            padding: 64px 24px;
+            color: var(--grey-text);
+        }
+
+        .empty-state .icon-wrap {
+            width: 72px;
+            height: 72px;
+            border-radius: 0;
+            background: var(--purchased-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+        }
+
+        .empty-state .icon-wrap svg {
+            width: 32px;
+            height: 32px;
+            stroke: var(--grey-text);
+            fill: none;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .empty-state p { font-size: 15px; line-height: 1.55; }
+
+        .item-wrap {
+            position: relative;
+            overflow: hidden;
+            border-radius: 0;
+            margin-bottom: 1px;
+        }
+
+        .item-wrap.entering {
+            animation: enterItem 0.3s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+        }
+
+        .item-wrap.removing {
+            animation: removeItem 0.25s ease forwards;
+            pointer-events: none;
+        }
+
+        .item-wrap.highlight .item-inner::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            box-shadow: inset 0 0 0 3px rgba(107, 158, 42, 0.4);
+            animation: pulseHL 0.7s ease forwards;
+            pointer-events: none;
+        }
+
+        @keyframes enterItem {
+            from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @keyframes removeItem {
+            to { opacity: 0; max-height: 0; margin-bottom: 0; transform: translateX(-80px); }
+        }
+
+        @keyframes pulseHL { to { opacity: 0; } }
+
+        .swipe-bg {
+            position: absolute;
+            inset: 0;
+            background: var(--swipe-bg);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 24px;
+            pointer-events: none;
+        }
+
+        .swipe-bg span { color: var(--white); font-size: 15px; font-weight: 600; }
+
+        .swipe-bg .sw-ico {
+            width: 22px;
+            height: 22px;
+            margin-right: 8px;
+            stroke: var(--white);
+            fill: none;
+            stroke-width: 2.2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .swipe-bg-left {
+            position: absolute;
+            inset: 0;
+            background: var(--swipe-bg);
+            display: flex;
+            align-items: center;
+            padding-left: 24px;
+            pointer-events: none;
+        }
+
+        .swipe-bg-left span { color: var(--white); font-size: 15px; font-weight: 600; }
+
+        .swipe-bg-left .sw-ico {
+            width: 22px;
+            height: 22px;
+            margin-right: 8px;
+            stroke: var(--white);
+            fill: none;
+            stroke-width: 2.2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .item-inner {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 8px 10px 16px;
+            min-height: 44px;
+            cursor: default;
+            user-select: none;
+            -webkit-user-select: none;
+            will-change: transform;
+            border-radius: 0;
+        }
+
+        .item-inner.active { background: var(--active-bg); color: var(--active-text); }
+        .item-inner.purchased { background: var(--purchased-bg); color: var(--grey-text); }
+
+        .item-name {
+            font-size: 24px;
+            font-weight: 400;
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding-right: 4px;
+            line-height: 1.2;
+        }
+
+        .item-inner.purchased .item-name {
+            text-decoration: line-through;
+            text-decoration-color: rgba(142, 142, 147, 0.5);
+        }
+
+        .del-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 0;
+            border: none;
+            background: rgba(0, 0, 0, 0.1);
+            color: rgba(0, 0, 0, 0.5);
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-left: 6px;
+            transition: background 0.12s, transform 0.1s;
+            font-family: inherit;
+            line-height: 1;
+        }
+
+        .del-btn:active { background: rgba(0, 0, 0, 0.18); transform: scale(0.88); }
+
+        .item-inner.purchased .del-btn {
+            background: rgba(142, 142, 147, 0.15);
+            color: var(--grey-text);
+        }
+
+        .item-inner.purchased .del-btn:active { background: rgba(142, 142, 147, 0.25); }
+
+        .section-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 4px 8px;
+        }
+
+        .section-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--grey-text);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .clear-btn {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            background: none;
+            border: none;
+            color: var(--red);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            padding: 6px 0;
+            font-family: inherit;
+        }
+
+        .clear-btn:active { opacity: 0.55; }
+
+        .clear-btn .chk {
+            width: 18px;
+            height: 18px;
+            border-radius: 0;
+            border: 1.5px solid var(--red);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .clear-btn .chk svg {
+            width: 11px;
+            height: 11px;
+            stroke: var(--red);
+            fill: none;
+            stroke-width: 2.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: calc(24px + var(--safe-bottom));
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text);
+            color: var(--white);
+            padding: 10px 20px;
+            border-radius: 0;
+            font-size: 14px;
+            font-weight: 500;
+            opacity: 0;
+            transition: opacity 0.25s, transform 0.25s;
+            pointer-events: none;
+            z-index: 100;
+            white-space: nowrap;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="splash" id="splash">
+        <div class="splash-icon">
+            <svg viewBox="0 0 24 24">
+                <circle cx="9" cy="21" r="1"/>
+                <circle cx="20" cy="21" r="1"/>
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+            </svg>
+        </div>
+        <div class="splash-label">Ritas Indkøb</div>
+    </div>
+
+    <div id="app">
+        <header class="header">
+            <h1>Ritas Indkøb<span class="sync-badge" id="syncBadge">
+                <svg viewBox="0 0 24 24"><path d="M18 4l3 3-3 3"/><path d="M21 7H9"/><path d="M6 20l-3-3 3-3"/><path d="M3 17h12"/></svg>
+            </span></h1>
+        </header>
+
+        <div class="input-bar">
+            <div class="input-row">
+                <input type="text" id="itemInput" placeholder="Tilføj vare..." autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="done">
+                <button type="button" class="plus-btn" id="plusBtn" aria-label="Tilføj">+</button>
+            </div>
+            <div class="autocomplete" id="autocomplete" role="listbox"></div>
+        </div>
+
+        <main class="scroll-area" id="scrollArea">
+            <div id="shoppingList"></div>
+            <div id="purchasedSection"></div>
+        </main>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <script>
+        /* ── Screen: keep awake + portrait only ── */
+        var wakeLock = null;
+
+        function requestWakeLock() {
+            if ('wakeLock' in navigator) {
+                navigator.wakeLock.request('screen').then(function(lock) {
+                    wakeLock = lock;
+                }).catch(function() {});
+            }
+        }
+
+        requestWakeLock();
+
+        /* Re-acquire wake lock when user returns to the app */
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'visible') {
+                requestWakeLock();
+            }
+        });
+
+        /* Lock to portrait in standalone PWA mode */
+        try {
+            if (window.screen.orientation && window.screen.orientation.lock) {
+                screen.orientation.lock('portrait').catch(function() {});
+            }
+        } catch (_) {}
+
+        /* ── Splash ── */
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                document.getElementById('splash').classList.add('hide');
+            }, 600);
+        });
+
+        /* ── PWA Manifest ── */
+        var manifest = {
+            name: 'Ritas Indkøb',
+            short_name: 'Ritas Indkøb',
+            start_url: '.',
+            display: 'standalone',
+            orientation: 'portrait',
+            background_color: '#FFFFFF',
+            theme_color: '#FFFFFF',
+            icons: [
+                { src: 'cart-trans.png', sizes: '1024x1024', type: 'image/png' }
+            ]
+        };
+        var manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+        var manifestLink = document.createElement('link');
+        manifestLink.rel = 'manifest';
+        manifestLink.href = URL.createObjectURL(manifestBlob);
+        document.head.appendChild(manifestLink);
+
+        /* ── Sync badge icons ── */
+        var ICON_SYNC = '<svg viewBox="0 0 24 24"><path d="M18 4l3 3-3 3"/><path d="M21 7H9"/><path d="M6 20l-3-3 3-3"/><path d="M3 17h12"/></svg>';
+        var ICON_CHECK = '<svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"/></svg>';
+        var ICON_OFF = '<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+
+        var syncBadge = document.getElementById('syncBadge');
+
+        function setSyncState(state) {
+            syncBadge.className = 'sync-badge ' + state;
+            if (state === 'online') {
+                syncBadge.innerHTML = ICON_CHECK;
+            } else if (state === 'syncing') {
+                syncBadge.innerHTML = ICON_SYNC;
+            } else {
+                syncBadge.innerHTML = ICON_OFF;
+            }
+        }
+
+        /* ── Firebase ── */
+        var firebaseConfig = {
+            apiKey: "AIzaSyDBEcQ6sMM4V9R5MOVSJ-Gw_a0qJCjC1Ec",
+            authDomain: "rita-3a8ae.firebaseapp.com",
+            databaseURL: "https://rita-3a8ae-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "rita-3a8ae",
+            storageBucket: "rita-3a8ae.firebasestorage.app",
+            messagingSenderId: "1043111901798",
+            appId: "1:1043111901798:web:eace40760120e9eea0cba7"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        var dbRef = firebase.database().ref('list');
+        var firebaseReady = false;
+
+        setSyncState('offline');
+
+        var STORAGE_KEY = 'ritas_indkoeb_v1';
+
+        function loadLocal() {
+            try {
+                var raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    var d = JSON.parse(raw);
+                    if (Array.isArray(d.shopping) && Array.isArray(d.purchased) && Array.isArray(d.allKnown)) {
+                        return d;
+                    }
+                }
+            } catch (_) {}
+            return { shopping: [], purchased: [], allKnown: [] };
+        }
+
+        function saveLocal() {
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (_) {}
+        }
+
+        var data = loadLocal();
+
+        function toArray(v) {
+            if (Array.isArray(v)) return v;
+            return [];
+        }
+
+        dbRef.on('value', function(snapshot) {
+            var d = snapshot.val();
+            if (d) {
+                data.shopping = toArray(d.shopping);
+                data.purchased = toArray(d.purchased);
+                data.allKnown = toArray(d.allKnown);
+                saveLocal();
+                firebaseReady = true;
+                setSyncState('online');
+                render();
+            } else if (!firebaseReady) {
+                dbRef.set(data);
+                firebaseReady = true;
+                setSyncState('online');
+            }
+        });
+
+        firebase.database().ref('.info/connected').on('value', function(snap) {
+            if (snap.val() === true) {
+                setSyncState('online');
+            } else {
+                setSyncState('offline');
+            }
+        });
+
+        function saveData() {
+            saveLocal();
+            try {
+                setSyncState('syncing');
+                dbRef.set(data, function(err) {
+                    if (!err) setSyncState('online');
+                    else setSyncState('offline');
+                });
+            } catch (_) {}
+        }
+
+        function uid() {
+            return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+        }
+
+        var SWIPE_W = 150;
+
+        function sortList(arr) {
+            arr.sort(function(a, b) {
+                return a.name.toLowerCase().localeCompare(b.name.toLowerCase(), 'da');
+            });
+        }
+
+        function addItem(name) {
+            name = name.trim();
+            if (!name) return;
+            name = name.charAt(0).toUpperCase() + name.slice(1);
+
+            var existing = null;
+            for (var i = 0; i < data.shopping.length; i++) {
+                if (data.shopping[i].name.toLowerCase() === name.toLowerCase()) {
+                    existing = data.shopping[i];
+                    break;
+                }
+            }
+
+            if (existing) {
+                var el = document.querySelector('.item-wrap[data-id="' + existing.id + '"]');
+                if (el) {
+                    el.classList.remove('highlight');
+                    void el.offsetWidth;
+                    el.classList.add('highlight');
+                    setTimeout(function() { el.classList.remove('highlight'); }, 700);
+                }
+                return;
+            }
+
+            data.shopping.push({ id: uid(), name: name });
+            data.purchased = data.purchased.filter(function(it) {
+                return it.name.toLowerCase() !== name.toLowerCase();
+            });
+
+            var low = name.toLowerCase();
+            var found = false;
+            for (var j = 0; j < data.allKnown.length; j++) {
+                if (data.allKnown[j].toLowerCase() === low) { found = true; break; }
+            }
+            if (!found) data.allKnown.push(name);
+
+            sortList(data.shopping);
+            saveData();
+            render({ animate: name });
+        }
+
+        function markPurchased(id) {
+            var idx = -1;
+            for (var i = 0; i < data.shopping.length; i++) {
+                if (data.shopping[i].id === id) { idx = i; break; }
+            }
+            if (idx === -1) return;
+
+            var el = document.querySelector('.item-wrap[data-id="' + id + '"]');
+            var ci = idx;
+            var doMove = function() {
+                var item = data.shopping.splice(ci, 1)[0];
+                data.purchased.push(item);
+                sortList(data.purchased);
+                saveData();
+                render();
+            };
+            if (el) {
+                el.classList.add('removing');
+                el.addEventListener('animationend', doMove, { once: true });
+            } else { doMove(); }
+        }
+
+        function markPurchasedInstant(id) {
+            var idx = -1;
+            for (var i = 0; i < data.shopping.length; i++) {
+                if (data.shopping[i].id === id) { idx = i; break; }
+            }
+            if (idx === -1) return;
+            var item = data.shopping.splice(idx, 1)[0];
+            data.purchased.push(item);
+            sortList(data.purchased);
+            saveData();
+            render();
+        }
+
+        function restoreItem(id) {
+            var idx = -1;
+            for (var i = 0; i < data.purchased.length; i++) {
+                if (data.purchased[i].id === id) { idx = i; break; }
+            }
+            if (idx === -1) return;
+
+            var el = document.querySelector('.item-wrap[data-id="' + id + '"]');
+            var ci = idx;
+            var doRestore = function() {
+                var item = data.purchased.splice(ci, 1)[0];
+                data.shopping.push(item);
+                sortList(data.shopping);
+                saveData();
+                render({ animate: item.name });
+            };
+            if (el) {
+                el.classList.add('removing');
+                el.addEventListener('animationend', doRestore, { once: true });
+            } else { doRestore(); }
+        }
+
+        function restoreItemInstant(id) {
+            var idx = -1;
+            for (var i = 0; i < data.purchased.length; i++) {
+                if (data.purchased[i].id === id) { idx = i; break; }
+            }
+            if (idx === -1) return;
+            var item = data.purchased.splice(idx, 1)[0];
+            data.shopping.push(item);
+            sortList(data.shopping);
+            saveData();
+            render({ animate: item.name });
+        }
+
+        function removeCompletely(id) {
+            var item = null;
+            for (var i = 0; i < data.shopping.length; i++) {
+                if (data.shopping[i].id === id) { item = data.shopping[i]; break; }
+            }
+            if (!item) {
+                for (var j = 0; j < data.purchased.length; j++) {
+                    if (data.purchased[j].id === id) { item = data.purchased[j]; break; }
+                }
+            }
+            if (!item) return;
+
+            var el = document.querySelector('.item-wrap[data-id="' + id + '"]');
+            var cn = item.name;
+            var doRemove = function() {
+                data.shopping = data.shopping.filter(function(it) { return it.id !== id; });
+                data.purchased = data.purchased.filter(function(it) { return it.id !== id; });
+                data.allKnown = data.allKnown.filter(function(n) { return n.toLowerCase() !== cn.toLowerCase(); });
+                saveData();
+                render();
+                showToast('Fjernet fra listen');
+            };
+            if (el) {
+                el.classList.add('removing');
+                el.addEventListener('animationend', doRemove, { once: true });
+            } else { doRemove(); }
+        }
+
+        function clearPurchased() {
+            if (data.purchased.length === 0) return;
+            data.purchased = [];
+            saveData();
+            render();
+            showToast('Købte varer fjernet');
+        }
+
+        function getSuggestions(query) {
+            var q = query.toLowerCase().trim();
+            if (!q) return [];
+
+            var onList = {};
+            for (var i = 0; i < data.shopping.length; i++) {
+                onList[data.shopping[i].name.toLowerCase()] = true;
+            }
+
+            var pool = {};
+            for (var j = 0; j < data.purchased.length; j++) {
+                pool[data.purchased[j].name] = true;
+            }
+            for (var k = 0; k < data.allKnown.length; k++) {
+                pool[data.allKnown[k]] = true;
+            }
+
+            var results = [];
+            var keys = Object.keys(pool);
+            for (var m = 0; m < keys.length; m++) {
+                var name = keys[m];
+                if (!onList[name.toLowerCase()] && name.toLowerCase().indexOf(q) !== -1) {
+                    results.push(name);
+                }
+            }
+            return results.slice(0, 8);
+        }
+
+        function escHtml(s) {
+            var d = document.createElement('div');
+            d.textContent = s;
+            return d.innerHTML;
+        }
+
+        function highlightMatch(text, query) {
+            var q = query.toLowerCase().trim();
+            var idx = text.toLowerCase().indexOf(q);
+            if (idx === -1) return escHtml(text);
+            return escHtml(text.slice(0, idx)) +
+                '<strong>' + escHtml(text.slice(idx, idx + q.length)) + '</strong>' +
+                escHtml(text.slice(idx + q.length));
+        }
+
+        function render(opts) {
+            opts = opts || {};
+            renderShopping(opts.animate);
+            renderPurchased();
+        }
+
+        function renderShopping(animateName) {
+            var c = document.getElementById('shoppingList');
+
+            if (data.shopping.length === 0 && data.purchased.length === 0) {
+                c.innerHTML =
+                    '<div class="empty-state">' +
+                        '<div class="icon-wrap">' +
+                            '<svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>' +
+                        '</div>' +
+                        '<p>Din indkøbsliste er tom.<br>Skriv en vare og tryk p\u00e5 +.</p>' +
+                    '</div>';
+                return;
+            }
+
+            if (data.shopping.length === 0) { c.innerHTML = ''; return; }
+
+            var html = '';
+            for (var k = 0; k < data.shopping.length; k++) {
+                var item = data.shopping[k];
+                var cls = (animateName && item.name === animateName) ? ' entering' : '';
+                html +=
+                    '<div class="item-wrap' + cls + '" data-id="' + item.id + '">' +
+                        '<div class="swipe-bg">' +
+                            '<svg class="sw-ico" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>' +
+                            '<span>K\u00f8bt</span>' +
+                        '</div>' +
+                        '<div class="item-inner active">' +
+                            '<span class="item-name">' + escHtml(item.name) + '</span>' +
+                            '<button class="del-btn" aria-label="Slet">&times;</button>' +
+                        '</div>' +
+                    '</div>';
+            }
+            c.innerHTML = html;
+
+            var wraps = c.querySelectorAll('.item-wrap');
+            for (var w = 0; w < wraps.length; w++) {
+                (function(wrap) {
+                    initSwipePurchase(wrap);
+                    wrap.querySelector('.del-btn').addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        removeCompletely(wrap.dataset.id);
+                    });
+                })(wraps[w]);
+            }
+        }
+
+        function renderPurchased() {
+            var c = document.getElementById('purchasedSection');
+            if (data.purchased.length === 0) { c.innerHTML = ''; return; }
+
+            var itemsHtml = '';
+            for (var k = 0; k < data.purchased.length; k++) {
+                var item = data.purchased[k];
+                itemsHtml +=
+                    '<div class="item-wrap" data-id="' + item.id + '">' +
+                        '<div class="swipe-bg-left">' +
+                            '<svg class="sw-ico" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+                            '<span>Tilf\u00f8j</span>' +
+                        '</div>' +
+                        '<div class="item-inner purchased">' +
+                            '<span class="item-name">' + escHtml(item.name) + '</span>' +
+                            '<button class="del-btn" aria-label="Slet">&times;</button>' +
+                        '</div>' +
+                    '</div>';
+            }
+
+            c.innerHTML =
+                '<div class="section-head">' +
+                    '<span class="section-label">K\u00f8bte for nyligt</span>' +
+                    '<button class="clear-btn" id="clearBtn">' +
+                        '<span class="chk"><svg viewBox="0 0 12 12"><polyline points="2 6 5 9 10 3"/></svg></span>' +
+                        'Fjern k\u00f8bte for nyligt (' + data.purchased.length + ')' +
+                    '</button>' +
+                '</div>' +
+                itemsHtml;
+
+            var wraps = c.querySelectorAll('.item-wrap');
+            for (var w = 0; w < wraps.length; w++) {
+                (function(wrap) {
+                    initSwipeRestore(wrap);
+                    wrap.querySelector('.del-btn').addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        removeCompletely(wrap.dataset.id);
+                    });
+                })(wraps[w]);
+            }
+
+            document.getElementById('clearBtn').addEventListener('click', clearPurchased);
+        }
+
+        var activeSwipe = null;
+
+        function initSwipePurchase(wrapper) {
+            var inner = wrapper.querySelector('.item-inner');
+            var startX = 0, startY = 0, curX = 0, isOpen = false;
+            var decided = false, swiping = false;
+            var id = wrapper.dataset.id;
+
+            function snapOpen() {
+                inner.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.9, 0.3, 1)';
+                inner.style.transform = 'translateX(-' + SWIPE_W + 'px)';
+                isOpen = true;
+                wrapper.classList.add('open');
+                activeSwipe = wrapper;
+            }
+
+            function snapClosed() {
+                inner.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.9, 0.3, 1)';
+                inner.style.transform = 'translateX(0)';
+                isOpen = false;
+                wrapper.classList.remove('open');
+                if (activeSwipe === wrapper) activeSwipe = null;
+            }
+
+            function closeOthers() {
+                if (activeSwipe && activeSwipe !== wrapper) {
+                    var oi = activeSwipe.querySelector('.item-inner');
+                    if (oi) {
+                        oi.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.9, 0.3, 1)';
+                        oi.style.transform = 'translateX(0)';
+                        activeSwipe.classList.remove('open');
+                    }
+                    activeSwipe = null;
+                }
+            }
+
+            inner.addEventListener('touchstart', function(e) {
+                closeOthers();
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+                curX = isOpen ? -SWIPE_W : 0;
+                decided = false;
+                swiping = false;
+                inner.style.transition = 'none';
+            }, { passive: true });
+
+            inner.addEventListener('touchmove', function(e) {
+                var dx = e.touches[0].clientX - startX;
+                var dy = e.touches[0].clientY - startY;
+                if (!decided) {
+                    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
+                        decided = true;
+                        swiping = Math.abs(dx) > Math.abs(dy);
+                    }
+                    return;
+                }
+                if (!swiping) return;
+                var rawT = curX + dx;
+                var t = rawT;
+                if (t > 0) t = t * 0.25;
+                if (t < -SWIPE_W) t = -SWIPE_W + (t + SWIPE_W) * 0.15;
+                t = Math.min(0, t);
+                inner.style.transform = 'translateX(' + t + 'px)';
+                if (rawT <= -SWIPE_W) {
+                    swiping = false;
+                    activeSwipe = null;
+                    markPurchasedInstant(id);
+                    return;
+                }
+            }, { passive: true });
+
+            inner.addEventListener('touchend', function() {
+                if (!swiping) { if (isOpen) snapClosed(); return; }
+                var m = inner.style.transform.match(/translateX\((-?[\d.]+)px\)/);
+                var finalT = m ? parseFloat(m[1]) : 0;
+                if (finalT < -SWIPE_W * 0.35) snapOpen();
+                else snapClosed();
+            });
+
+            wrapper.querySelector('.swipe-bg').style.pointerEvents = 'auto';
+            wrapper.querySelector('.swipe-bg').addEventListener('click', function() {
+                markPurchased(id);
+                activeSwipe = null;
+            });
+        }
+
+        var activeRestore = null;
+
+        function initSwipeRestore(wrapper) {
+            var inner = wrapper.querySelector('.item-inner');
+            var startX = 0, startY = 0;
+            var decided = false, swiping = false;
+            var isOpen = false;
+            var id = wrapper.dataset.id;
+
+            function snapOpen() {
+                inner.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.9, 0.3, 1)';
+                inner.style.transform = 'translateX(' + SWIPE_W + 'px)';
+                isOpen = true;
+                wrapper.classList.add('open-restore');
+                activeRestore = wrapper;
+            }
+
+            function snapClosed() {
+                inner.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.9, 0.3, 1)';
+                inner.style.transform = 'translateX(0)';
+                isOpen = false;
+                wrapper.classList.remove('open-restore');
+                if (activeRestore === wrapper) activeRestore = null;
+            }
+
+            function closeOthers() {
+                if (activeRestore && activeRestore !== wrapper) {
+                    var oi = activeRestore.querySelector('.item-inner');
+                    if (oi) {
+                        oi.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.9, 0.3, 1)';
+                        oi.style.transform = 'translateX(0)';
+                        activeRestore.classList.remove('open-restore');
+                    }
+                    activeRestore = null;
+                }
+            }
+
+            inner.addEventListener('touchstart', function(e) {
+                closeOthers();
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+                decided = false;
+                swiping = false;
+                inner.style.transition = 'none';
+            }, { passive: true });
+
+            inner.addEventListener('touchmove', function(e) {
+                var dx = e.touches[0].clientX - startX;
+                var dy = e.touches[0].clientY - startY;
+                if (!decided) {
+                    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
+                        decided = true;
+                        swiping = Math.abs(dx) > Math.abs(dy);
+                    }
+                    return;
+                }
+                if (!swiping) return;
+                var t = dx;
+                if (t < 0) t = t * 0.25;
+                if (t > SWIPE_W) t = SWIPE_W + (t - SWIPE_W) * 0.15;
+                t = Math.max(0, t);
+                inner.style.transform = 'translateX(' + t + 'px)';
+                if (dx >= SWIPE_W) {
+                    swiping = false;
+                    activeRestore = null;
+                    restoreItemInstant(id);
+                    return;
+                }
+            }, { passive: true });
+
+            inner.addEventListener('touchend', function() {
+                if (!swiping) { if (isOpen) snapClosed(); return; }
+                var m = inner.style.transform.match(/translateX\((-?[\d.]+)px\)/);
+                var finalT = m ? parseFloat(m[1]) : 0;
+                if (finalT > SWIPE_W * 0.35) snapOpen();
+                else snapClosed();
+            });
+
+            wrapper.querySelector('.swipe-bg-left').style.pointerEvents = 'auto';
+            wrapper.querySelector('.swipe-bg-left').addEventListener('click', function() {
+                restoreItem(id);
+                activeRestore = null;
+            });
+        }
+
+        document.addEventListener('touchstart', function(e) {
+            if (!e.target.closest('.input-bar')) {
+                acEl.classList.remove('visible');
+                acEl.innerHTML = '';
+                itemInput.blur();
+            }
+            if (activeSwipe && !e.target.closest('.item-wrap.open')) {
+                var oi = activeSwipe.querySelector('.item-inner');
+                if (oi) {
+                    oi.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.9, 0.3, 1)';
+                    oi.style.transform = 'translateX(0)';
+                    activeSwipe.classList.remove('open');
+                }
+                activeSwipe = null;
+            }
+            if (activeRestore && !e.target.closest('.item-wrap.open-restore')) {
+                var oi2 = activeRestore.querySelector('.item-inner');
+                if (oi2) {
+                    oi2.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.9, 0.3, 1)';
+                    oi2.style.transform = 'translateX(0)';
+                    activeRestore.classList.remove('open-restore');
+                }
+                activeRestore = null;
+            }
+        }, { passive: true });
+
+        var itemInput = document.getElementById('itemInput');
+        var plusBtn = document.getElementById('plusBtn');
+        var acEl = document.getElementById('autocomplete');
+
+        function submitItem() {
+            addItem(itemInput.value);
+            itemInput.value = '';
+            acEl.classList.remove('visible');
+            acEl.innerHTML = '';
+            itemInput.focus();
+        }
+
+        plusBtn.addEventListener('click', function() { submitItem(); });
+
+        itemInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.keyCode === 13) {
+                e.preventDefault();
+                submitItem();
+            }
+        });
+
+        itemInput.addEventListener('input', function() {
+            var q = itemInput.value;
+            if (!q.trim()) { acEl.classList.remove('visible'); acEl.innerHTML = ''; return; }
+
+            var suggestions = getSuggestions(q);
+            if (suggestions.length === 0) { acEl.classList.remove('visible'); acEl.innerHTML = ''; return; }
+
+            var html = '';
+            for (var i = 0; i < suggestions.length; i++) {
+                html += '<div class="ac-item" role="option" data-name="' + escHtml(suggestions[i]) + '">' +
+                    highlightMatch(suggestions[i], q) + '</div>';
+            }
+            acEl.innerHTML = html;
+            acEl.classList.add('visible');
+
+            var items = acEl.querySelectorAll('.ac-item');
+            for (var j = 0; j < items.length; j++) {
+                (function(el) {
+                    el.addEventListener('touchend', function(e) {
+                        e.preventDefault();
+                        addItem(el.dataset.name);
+                        itemInput.value = '';
+                        acEl.classList.remove('visible');
+                        acEl.innerHTML = '';
+                        itemInput.focus();
+                    });
+                    el.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        addItem(el.dataset.name);
+                        itemInput.value = '';
+                        acEl.classList.remove('visible');
+                        acEl.innerHTML = '';
+                        itemInput.focus();
+                    });
+                })(items[j]);
+            }
+        });
+
+        var toastTimer = null;
+        function showToast(msg) {
+            var t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(function() { t.classList.remove('show'); }, 1800);
+        }
+
+        sortList(data.shopping);
+        sortList(data.purchased);
+        render();
+    </script>
+</body>
+</html>
